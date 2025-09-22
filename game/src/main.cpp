@@ -11,30 +11,45 @@ See documentation here: https://www.raylib.com/, and examples here: https://www.
 const unsigned int TARGET_FPS = 50; // Target frames per second
 float dt = 1.0f / TARGET_FPS; // Delta time (time per frame)
 float time = 0;
-float x = 650;
-float y = 500;
-float frequency = 1.0f;
-float amplitude = 100.0f;
+
+// Launch variables
+Vector2 launchPos = { 600, 700 };
+float launchAngle = 30.0f;
+float launchSpeed = 100.0f;
+
+Vector2 velocity = { 0, 0 };
 
 void update()
 {
 		dt = 1.0f / TARGET_FPS;
         time += dt;
 
-		x = x + (-sin(time * frequency)) * frequency * amplitude * dt;
-		y = y + (cos(time * frequency)) * frequency * amplitude * dt;
+		// Update launch parameters with GUI
+		float rad = launchAngle * DEG2RAD;
+		velocity.x = launchSpeed * cos(rad);
+        velocity.y = launchSpeed * -sin(rad);
+		
 }
 
 void draw()
 {
         BeginDrawing();
             ClearBackground(BLACK);
-            DrawText("Uhh Stinky", 440, 250, 50, DARKPURPLE);
+            DrawText("Enraged Birds launch distance", 10, GetScreenHeight() - 30, 20, DARKPURPLE);
 
 
-            GuiSliderBar(Rectangle{ 60, 770, 1000, 10 }, "Time", TextFormat("%.2f", time), &time, 0, 30);
+			GuiSliderBar(Rectangle{ 60, 5, 200, 10 }, " X Point", TextFormat("%.0f", launchPos.x), &launchPos.x, 0, GetScreenWidth());
+			GuiSliderBar(Rectangle{ 350, 5, 200, 10 }, " Y Point", TextFormat("%.0f", launchPos.y), &launchPos.y, 0, GetScreenHeight());
+			GuiSliderBar(Rectangle{ 640, 5, 200, 10 }, " Angle", TextFormat("%.0f", launchAngle), &launchAngle, 1, 90);
+			GuiSliderBar(Rectangle{ 930, 5, 200, 10 }, " Speed", TextFormat("%.0f", launchSpeed), &launchSpeed, 0, 1500);
 
-			DrawCircle(x, y, 80, PINK);
+			float visualScale = 0.2f;
+			Vector2 velocityVector = Vector2Scale(velocity, visualScale);
+			Vector2 endPos = Vector2Add(launchPos, velocityVector);
+			DrawLineV(launchPos, endPos, RED);
+			DrawText("Velocity", endPos.x + 10, endPos.y, 10, RED);
+
+			
 
 
 
