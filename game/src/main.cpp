@@ -11,7 +11,9 @@ struct PhysicsBody
 {
     Vector2 position = Vector2Zeros;
     Vector2 velocity = Vector2Zeros;
+	float drag = 0.0f; // Not used in this example
     float invMass = 1.0f;
+
 };
 
 // Physics Simulation
