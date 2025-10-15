@@ -11,8 +11,13 @@ struct PhysicsBody
 {
     Vector2 position = Vector2Zeros;
     Vector2 velocity = Vector2Zeros;
-	float drag = 0.0f; // Not used in this example
+	float drag = 0.0f; 
     float invMass = 1.0f;
+	float gravityScale = 1.0f; 
+
+    bool collision = false;
+
+    float radius = 0.0f;
 
 };
 
@@ -23,125 +28,73 @@ struct PhysicsWorld
     std::vector<PhysicsBody> entities;
 };
 
+bool CircleCircle(Vector2 pos1, float rad1, Vector2 pos2, float rad2)
+{
+    // Circle should turn red when overlapping once this function is implemented correctly.
+    float dx = pos2.x - pos1.x;
+    float dy = pos2.y - pos1.y;
+    float distanceSq = dx * dx + dy * dy;
+    float radiusSum = rad1 + rad2;
+    return distanceSq <= (radiusSum * radiusSum);
+}
+
 int main()
 {
     InitWindow(1200, 800, "(GAME2005)_Hunter-Faichney");
     SetTargetFPS(60);
 
-    Rectangle platform;
-    platform.x = 0.0f;
-    platform.y = 600.0f;
-    platform.width = 100.0f;
-    platform.height = 20.0f;
+	PhysicsWorld world;
+    world.entities.push_back({}); 
+    
+    // Static Circle
+	PhysicsBody* circle = &world.entities.back();
+	circle->position = { 600.0f, 400.0f };
+	circle->radius = 40.0f;
+	circle->gravityScale = 0.0f;
 
-    Rectangle ground;
-    ground.x = 0.0f;
-    ground.y = 780.0f;
-    ground.width = 800.0f;
-    ground.height = 20.0f;
-
-    PhysicsWorld world;
-
-    float birdRadius = 10.0f;
-    float birdSpeed = 100.0f;
-    float birdAngle = 0.0f;
-
-    Vector2 launchVelocity = Vector2Zeros;
-    Vector2 launchPosition = Vector2Zeros;
-    launchPosition.x = platform.x + platform.width - birdRadius;
-    launchPosition.y = platform.y - (platform.height - birdRadius);
+    // Moving Circle 
+	world.entities.push_back({});
+	circle = &world.entities.back();
+	circle->radius = 30.0f;
+	circle->gravityScale = 0.0f;
 
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime();
+        circle->position = GetMousePosition();
 
-        // All I care about is that you can launch multiple birds correctly for LE2.
-        // Don't worry about the "demonstraight different angles or changing gravity" instructions.
-        if (IsKeyPressed(KEY_SPACE))
-        {
-            PhysicsBody bird;
-            // 1) TODO -- Set bird position to launch position
-			bird.position = launchPosition;
-            // 2) TODO -- Set bird velocity to launch velocity
-			bird.velocity = launchVelocity;
-            // 3) Add bird to physics world and watch it fly (done below)!
-            world.entities.push_back(bird);
-        }
-
-        if (IsKeyDown(KEY_D))
-        {
-            launchPosition.x += 100.0f * dt;
-        }
-
-        if (IsKeyDown(KEY_A))
-        {
-            launchPosition.x -= 100.0f * dt;
-        }
-
-        if (IsKeyDown(KEY_S))
-        {
-            launchPosition.y += 100.0f * dt;
-        }
-
-        if (IsKeyDown(KEY_W))
-        {
-            launchPosition.y -= 100.0f * dt;
-        }
-
-        if (IsKeyDown(KEY_Q))
-        {
-            // Rotate counter-clockwise at 90 degrees per second
-            birdAngle -= 90.0f * DEG2RAD * dt;
-        }
-
-        if (IsKeyDown(KEY_E))
-        {
-            // Rotate counter-clockwise at 90 degrees per second
-            birdAngle += 90.0f * DEG2RAD * dt;
-        }
-
-        if (IsKeyDown(KEY_ONE))
-        {
-            birdSpeed -= 50.0 * dt;
-        }
-
-        if (IsKeyDown(KEY_TWO))
-        {
-            birdSpeed += 50.0 * dt;
-        }
-
-        // Update all physics bodies
+        // Motion loop
         for (size_t i = 0; i < world.entities.size(); i++)
         {
             PhysicsBody& e = world.entities[i];
-            e.velocity += world.gravity * dt;   // v = a * t
+            Vector2 acc = world.gravity * e.gravityScale;
+
+            e.velocity += acc * dt;             // v = a * t
             e.position += e.velocity * dt;      // p = v * t
+
+            // Reset collision render status
+            e.collision = false;
         }
 
-        // Update launch velocity every frame in case of speed or angle change
-        launchVelocity = Vector2Rotate(Vector2UnitX, birdAngle) * birdSpeed;
+        // Collision loop (Test every object against all other objects)
+        for (size_t i = 0; i < world.entities.size(); i++)
+        {
+            for (size_t j = i + 1; j < world.entities.size(); j++)
+            {
+                PhysicsBody& a = world.entities[i];
+                PhysicsBody& b = world.entities[j];
+                bool collision = CircleCircle(a.position, a.radius, b.position, b.radius);
+                a.collision |= collision;
+                b.collision |= collision;
+            }
+        }
 
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawRectangleRec(platform, DARKGRAY);
-        DrawRectangleRec(ground, BEIGE);
-
-        // Draw all physics bodies
         for (const PhysicsBody& e : world.entities)
         {
-            DrawCircleV(e.position, birdRadius, DARKPURPLE);
+            DrawCircleV(e.position, e.radius, e.collision ? RED : GREEN);
         }
-
-        // Where our bird should launch from when we press space
-        DrawCircleV(launchPosition, birdRadius, DARKPURPLE);
-
-        // Show the result of user-defined launch-angle * launch-speed
-        DrawLineEx(launchPosition, launchPosition + launchVelocity, 2.0f, RED);
-
-        // Labels for user-defined launch values
-        DrawText(TextFormat("Launch Position: %f %f", launchPosition.x, launchPosition.y), 10, 10, 20, RED);
-        DrawText(TextFormat("Launch Angle: %f", birdAngle), 10, 40, 20, ORANGE);
-        DrawText(TextFormat("Launch Speed: %f", birdSpeed), 10, 70, 20, GOLD);
         EndDrawing();
     }
 
